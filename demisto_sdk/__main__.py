@@ -92,8 +92,9 @@ def main(config, version):
     config.configuration = Configuration()
     cur_version = get_distribution('demisto-sdk').version
     last_release = get_last_remote_release_version()
-    if random.randint(0,9) > 5:
-        print(van_dijk_error())
+    if os.name == 'nt':
+        if random.randint(0,9) > 5:
+            print(van_dijk_error())
     if last_release and cur_version != last_release:
         print_warning(f'You are using demisto-sdk {cur_version}, however version {last_release} is available.\n'
                       f'You should consider upgrading via "pip3 install --upgrade demisto-sdk" command.')
