@@ -8,6 +8,7 @@ from pkg_resources import get_distribution
 
 # Third party packages
 import click
+import colorama
 import demisto_sdk.commands.common.tools as tools
 from demisto_sdk.commands.common.configuration import Configuration
 # Common tools
@@ -92,6 +93,7 @@ def main(config, version):
     config.configuration = Configuration()
     cur_version = get_distribution('demisto-sdk').version
     last_release = get_last_remote_release_version()
+    colorama.init()
     if os.name == 'nt':
         if random.randint(0,9) > 5:
             print(van_dijk_error())
