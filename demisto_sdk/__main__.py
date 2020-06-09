@@ -2,6 +2,7 @@
 import os
 import re
 import sys
+import random
 
 from pkg_resources import get_distribution
 
@@ -91,6 +92,8 @@ def main(config, version):
     config.configuration = Configuration()
     cur_version = get_distribution('demisto-sdk').version
     last_release = get_last_remote_release_version()
+    if random.randint(0,9) > 5:
+        print(van_dijk_error())
     if last_release and cur_version != last_release:
         print_warning(f'You are using demisto-sdk {cur_version}, however version {last_release} is available.\n'
                       f'You should consider upgrading via "pip3 install --upgrade demisto-sdk" command.')
@@ -824,6 +827,10 @@ def find_dependencies_command(**kwargs):
 def exit_from_program(result=0, **kwargs):
     sys.exit(result)
 
+
+def van_dijk_error():
+    with open('demisto_sdk/tests/test_files/win_error', 'r') as reader:
+        return reader.read()
 
 # todo: add download from demisto command
 
