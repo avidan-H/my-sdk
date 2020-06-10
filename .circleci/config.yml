@@ -23,7 +23,7 @@ jobs:
         - run:
             name: Tox build
             command: |
-              pip install tox
+              pip install --user tox
               tox -e py37 -v -- --cov=demisto_sdk --cov-report=html
               tox -e py38 -v
         - run:
