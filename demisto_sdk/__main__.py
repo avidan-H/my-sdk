@@ -263,7 +263,7 @@ def validate(config, **kwargs):
         print_error(f'File {file_path} was not found')
         return 1
     else:
-        is_private_repo = tools.is_private_repository()
+        is_external_repo = tools.is_external_repository()
 
         validator = FilesValidator(configuration=config.configuration,
                                    is_backward_check=not kwargs['no_backward_comp'],
@@ -274,7 +274,7 @@ def validate(config, **kwargs):
                                    validate_id_set=kwargs['id_set'],
                                    skip_pack_rn_validation=kwargs['skip_pack_release_notes'],
                                    print_ignored_errors=kwargs['print_ignored_errors'],
-                                   is_private_repo=is_private_repo, )
+                                   is_external_repo=is_external_repo, )
         return validator.run()
 
 
@@ -421,7 +421,8 @@ def format_yml(input=None, output=None, from_version=None, no_validate=None):
 @main.command(name="upload",
               short_help="Upload integration to Demisto instance. DEMISTO_BASE_URL environment variable should contain"
                          " the Demisto server base URL. DEMISTO_API_KEY environment variable should contain a valid "
-                         "Demisto API Key.")
+                         "Demisto API Key."
+                         " * Note: Uploading classifiers to Cortex XSOAR is available from version 6.0.0 and up.*")
 @click.help_option(
     '-h', '--help'
 )
@@ -777,7 +778,7 @@ def update_pack_releasenotes(**kwargs):
                             f"To update release notes in a specific pack, please use the -p parameter "
                             f"along with the pack name.")
                 sys.exit(0)
-    if len(modified) < 1:
+    if (len(modified) < 1) and (len(added) < 1):
         print_warning('No changes were detected.')
         sys.exit(0)
     if is_all and not _pack:

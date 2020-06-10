@@ -78,12 +78,14 @@ class UpdateRN:
 
     @staticmethod
     def get_display_name(file_path):
-        struct = StructureValidator(file_path=file_path)
+        struct = StructureValidator(file_path=file_path, is_new_file=True)
         file_data = struct.load_data_from_file()
         if 'name' in file_data:
             name = file_data.get('name', None)
         elif 'TypeName' in file_data:
             name = file_data.get('TypeName', None)
+        elif 'brandName' in file_data:
+            name = file_data.get('brandName', None)
         else:
             name = os.path.basename(file_path)
         return name
@@ -113,12 +115,22 @@ class UpdateRN:
             # incident fields and indicator fields are using the same scheme.
             elif 'IncidentFields' in file_path:
                 _file_type = 'IncidentFields'
+            elif 'IndicatorTypes' in file_path:
+                _file_type = 'IndicatorTypes'
             elif 'IncidentTypes' in file_path:
                 _file_type = 'IncidentTypes'
             elif 'Classifiers' in file_path:
                 _file_type = 'Classifiers'
             elif 'Layouts' in file_path:
                 _file_type = 'Layout'
+            elif 'Reports' in file_path:
+                _file_type = 'Reports'
+            elif 'Widgets' in file_path:
+                _file_type = 'Widgets'
+            elif 'Dashboards' in file_path:
+                _file_type = 'Dashboards'
+            elif 'Connections' in file_path:
+                _file_type = 'Connections'
 
         return file_name, _file_type
 
@@ -192,44 +204,74 @@ class UpdateRN:
         classifier_header = False
         layout_header = False
         inc_types_header = False
+        ind_types_header = False
+        rep_types_header = False
+        widgets_header = False
+        dashboards_header = False
+        connections_header = False
         for k, v in changed_items.items():
             if k == 'N/A':
                 continue
             elif v == 'Integration':
                 if not integration_header:
-                    rn_string += '\n### Integrations\n'
+                    rn_string += '\n#### Integrations\n'
                     integration_header = True
-                rn_string += f'- __{k}__\n%%UPDATE_RN%%\n'
+                rn_string += f'##### {k}\n- %%UPDATE_RN%%\n'
             elif v == 'Playbook':
                 if not playbook_header:
-                    rn_string += '\n### Playbooks\n'
+                    rn_string += '\n#### Playbooks\n'
                     playbook_header = True
-                rn_string += f'- __{k}__\n%%UPDATE_RN%%\n'
+                rn_string += f'##### {k}\n- %%UPDATE_RN%%\n'
             elif v == 'Script':
                 if not script_header:
-                    rn_string += '\n### Scripts\n'
+                    rn_string += '\n#### Scripts\n'
                     script_header = True
-                rn_string += f'- __{k}__\n%%UPDATE_RN%%\n'
+                rn_string += f'##### {k}\n- %%UPDATE_RN%%\n'
             elif v == 'IncidentFields':
                 if not inc_flds_header:
-                    rn_string += '\n### IncidentFields\n'
+                    rn_string += '\n#### IncidentFields\n'
                     inc_flds_header = True
-                rn_string += f'- __{k}__\n%%UPDATE_RN%%\n'
+                rn_string += f'##### {k}\n- %%UPDATE_RN%%\n'
             elif v == 'Classifiers':
                 if not classifier_header:
-                    rn_string += '\n### Classifiers\n'
+                    rn_string += '\n#### Classifiers\n'
                     classifier_header = True
-                rn_string += f'- __{k}__\n%%UPDATE_RN%%\n'
+                rn_string += f'##### {k}\n- %%UPDATE_RN%%\n'
             elif v == 'Layouts':
                 if not layout_header:
-                    rn_string += '\n### Layouts\n'
+                    rn_string += '\n#### Layouts\n'
                     layout_header = True
-                rn_string += f'- __{k}__\n%%UPDATE_RN%%\n'
+                rn_string += f'##### {k}\n- %%UPDATE_RN%%\n'
             elif v == 'IncidentTypes':
                 if not inc_types_header:
-                    rn_string += '\n### IncidentTypes\n'
+                    rn_string += '\n#### IncidentTypes\n'
                     inc_types_header = True
-                rn_string += f'- __{k}__\n%%UPDATE_RN%%\n'
+                rn_string += f'##### {k}\n- %%UPDATE_RN%%\n'
+            elif v == 'IndicatorTypes':
+                if not ind_types_header:
+                    rn_string += '\n#### IndicatorTypes\n'
+                    ind_types_header = True
+                rn_string += f'##### {k}\n- %%UPDATE_RN%%\n'
+            elif v == 'Reports':
+                if not rep_types_header:
+                    rn_string += '\n#### Reports\n'
+                    rep_types_header = True
+                rn_string += f'##### {k}\n- %%UPDATE_RN%%\n'
+            elif v == 'Widgets':
+                if not widgets_header:
+                    rn_string += '\n#### Widgets\n'
+                    widgets_header = True
+                rn_string += f'##### {k}\n- %%UPDATE_RN%%\n'
+            elif v == 'Dashboards':
+                if not dashboards_header:
+                    rn_string += '\n#### Dashboards\n'
+                    dashboards_header = True
+                rn_string += f'##### {k}\n- %%UPDATE_RN%%\n'
+            elif v == 'Connections':
+                if not connections_header:
+                    rn_string += '\n#### Connections\n'
+                    connections_header = True
+                rn_string += f'##### {k}\n- %%UPDATE_RN%%\n'
         return rn_string
 
     @staticmethod
@@ -244,7 +286,7 @@ class UpdateRN:
                     continue
                 else:
                     rn_parts = new_rn.split(v + 's')
-                    new_rn_part = f'\n- __{k}__\n%%UPDATE_RN%%\n'
+                    new_rn_part = f'\n##### {k}\n- %%UPDATE_RN%%\n'
                     if len(rn_parts) > 1:
                         new_rn = rn_parts[0] + v + 's' + new_rn_part + rn_parts[1]
                     else:
@@ -252,13 +294,13 @@ class UpdateRN:
             else:
                 if v in new_rn:
                     rn_parts = new_rn.split(v + 's')
-                    new_rn_part = f'\n- __{k}__\n%%UPDATE_RN%%\n'
+                    new_rn_part = f'\n##### {k}\n- %%UPDATE_RN%%\n'
                     if len(rn_parts) > 1:
                         new_rn = rn_parts[0] + v + 's' + new_rn_part + rn_parts[1]
                     else:
                         new_rn = ''.join(rn_parts) + new_rn_part
                 else:
-                    new_rn_part = f'\n### {v}\n- __{k}__\n%%UPDATE_RN%%\n'
+                    new_rn_part = f'\n#### {v}\n##### {k}\n- %%UPDATE_RN%%\n'
                     new_rn += new_rn_part
         return new_rn
 

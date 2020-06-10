@@ -1,23 +1,27 @@
 from typing import Any
 
-from demisto_sdk.commands.common.constants import (CONF_PATH,
+from demisto_sdk.commands.common.constants import (BETA_INTEGRATION_DISCLAIMER,
+                                                   CONF_PATH,
                                                    INTEGRATION_CATEGORIES,
                                                    PACK_METADATA_DESC,
                                                    PACK_METADATA_NAME)
 
+FOUND_FILES_AND_ERRORS = []
+
+ALLOWED_IGNORE_ERRORS = ['BA101', 'IF107', 'RP102', 'SC100', 'IF106']
+
 PRESET_ERROR_TO_IGNORE = {
-    "no-bc-check": ["BC100", "BC101", "BC102", "BC103", "BC104"]
 }
 
 PRESET_ERROR_TO_CHECK = {
     "deprecated": ['ST', 'BC', 'BA'],
-    "ignore-all": []
 }
 
 ERROR_CODE = {
     "wrong_version": "BA100",
     "id_should_equal_name": "BA101",
     "file_type_not_supported": "BA102",
+    "file_name_include_spaces_error": "BA103",
     "wrong_display_name": "IN100",
     "wrong_default_parameter_not_empty": "IN101",
     "wrong_required_value": "IN102",
@@ -57,6 +61,7 @@ ERROR_CODE = {
     "docker_tag_not_fetched": "DO103",
     "no_docker_tag": "DO104",
     "docker_not_formatted_correctly": "DO105",
+    "docker_not_on_the_latest_tag": "DO106",
     "id_set_conflicts": "ID100",
     "id_set_not_updated": "ID101",
     "duplicated_id": "ID102",
@@ -92,6 +97,7 @@ ERROR_CODE = {
     "no_beta_disclaimer_in_description": "DS101",
     "no_beta_disclaimer_in_yml": "DS102",
     "description_in_package_and_yml": "DS103",
+    "no_description_file_warning": "DS104",
     "invalid_incident_field_name": "IF100",
     "invalid_incident_field_content_key_value": "IF101",
     "invalid_incident_field_system_key_value": "IF102",
@@ -105,6 +111,7 @@ ERROR_CODE = {
     "from_version_modified_after_rename": "IF110",
     "incident_field_type_change": "IF111",
     "incident_type_integer_field": "IT100",
+    "incident_type_invalid_playbook_id_field": "IT101",
     "pack_file_does_not_exist": "PA100",
     "cant_open_pack_file": "PA101",
     "cant_read_pack_file": "PA102",
@@ -129,6 +136,23 @@ ERROR_CODE = {
     "wrong_file_extension": "ST104",
     "invalid_file_path": "ST105",
     "invalid_package_structure": "ST106",
+    "pykwalify_missing_parameter": "ST107",
+    "pykwalify_field_undefined": "ST108",
+    "pykwalify_missing_in_root": "ST109",
+    "pykwalify_general_error": "ST110",
+    "invalid_to_version_in_new_classifiers": "CL100",
+    "invalid_to_version_in_old_classifiers": "CL101",
+    "invalid_from_version_in_new_classifiers": "CL102",
+    "invalid_from_version_in_old_classifiers": "CL103",
+    "missing_from_version_in_new_classifiers": "CL104",
+    "missing_to_version_in_old_classifiers": "CL105",
+    "from_version_higher_to_version": "CL106",
+    "invalid_type_in_new_classifiers": "CL107",
+    "invalid_from_version_in_mapper": "MP100",
+    "invalid_to_version_in_mapper": "MP101",
+    "invalid_mapper_file_name": "MP102",
+    "missing_from_version_in_mapper": "MP103",
+    "invalid_type_in_mapper": "MP104"
 }
 
 
@@ -164,6 +188,11 @@ class Errors:
         return "The file type is not supported in validate command\n " \
                "validate' command supports: Integrations, Scripts, Playbooks, " \
                "Incident fields, Indicator fields, Images, Release notes, Layouts and Descriptions"
+
+    @staticmethod
+    @error_code_decorator
+    def file_name_include_spaces_error(file_name):
+        return "Please remove spaces from the file's name: '{}'.".format(file_name)
 
     @staticmethod
     @error_code_decorator
@@ -398,6 +427,15 @@ class Errors:
 
     @staticmethod
     @error_code_decorator
+    def docker_not_on_the_latest_tag(docker_image_tag, docker_image_latest_tag, docker_image_name):
+        return f'The docker image tag is not the latest numeric tag, please update it.\n' \
+               f'The docker image tag in the yml file is: {docker_image_tag}\n' \
+               f'The latest docker image tag in docker hub is: {docker_image_latest_tag}\n' \
+               f'You can check for the most updated version of {docker_image_name} ' \
+               f'here: https://hub.docker.com/r/{docker_image_name}/tags\n'
+
+    @staticmethod
+    @error_code_decorator
     def id_set_conflicts():
         return "You probably merged from master and your id_set.json has " \
                "conflicts. Run `demisto-sdk create-id-set`, it should reindex your id_set.json"
@@ -489,7 +527,7 @@ class Errors:
                f'Please add:\n{missing_test_playbook_configurations}\nto {CONF_PATH} ' \
                f'path under \'tests\' key.\n' \
                f'If you don\'t want to add a test playbook for this integration, please add: \n{no_tests_key}to the ' \
-               f'file {file_path} or run \'demisto-sdk format -p {file_path}\''
+               f'file {file_path} or run \'demisto-sdk format -i {file_path}\''
 
     @staticmethod
     @error_code_decorator
@@ -551,9 +589,10 @@ class Errors:
 
     @staticmethod
     @error_code_decorator
-    def missing_release_notes_entry(file_type, pack_name):
-        return f"No release note entry was found for a {file_type.lower()} in the {pack_name} pack. " \
-               f"Please rerun the update-release-notes command without -u to generate an updated template."
+    def missing_release_notes_entry(file_type, pack_name, entity_name):
+        return f"No release note entry was found for the {file_type.lower()} \"{entity_name}\" in the " \
+               f"{pack_name} pack. Please rerun the update-release-notes command without -u to " \
+               f"generate an updated template."
 
     @staticmethod
     @error_code_decorator
@@ -581,29 +620,34 @@ class Errors:
     @staticmethod
     @error_code_decorator
     def description_missing_in_beta_integration():
-        return "No detailed description file was found in the package. Please add one, " \
-               "and make sure it includes the beta disclaimer note." \
-               "It should contain the string in constant\"BETA_INTEGRATION_DISCLAIMER\""
+        return f"No detailed description file was found in the package. Please add one, " \
+               f"and make sure it includes the beta disclaimer note." \
+               f"Add the following to the detailed description:\n{BETA_INTEGRATION_DISCLAIMER}"
 
     @staticmethod
     @error_code_decorator
     def no_beta_disclaimer_in_description():
-        return "The detailed description in beta integration package " \
-               "dose not contain the beta disclaimer note. It should contain the string in constant" \
-               "\"BETA_INTEGRATION_DISCLAIMER\"."
+        return f"The detailed description in beta integration package " \
+               f"dose not contain the beta disclaimer note. Add the following to the description:\n" \
+               f"{BETA_INTEGRATION_DISCLAIMER}"
 
     @staticmethod
     @error_code_decorator
     def no_beta_disclaimer_in_yml():
-        return "The detailed description field in beta integration " \
-               "dose not contain the beta disclaimer note. It should contain the string in constant" \
-               " \"BETA_INTEGRATION_DISCLAIMER\"."
+        return f"The detailed description field in beta integration " \
+               f"dose not contain the beta disclaimer note. Add the following to the detailed description:\n" \
+               f"{BETA_INTEGRATION_DISCLAIMER}"
 
     @staticmethod
     @error_code_decorator
     def description_in_package_and_yml():
         return "A description was found both in the " \
                "package and in the yml, please update the package."
+
+    @staticmethod
+    @error_code_decorator
+    def no_description_file_warning():
+        return "No detailed description file was found. Consider adding one."
 
     @staticmethod
     @error_code_decorator
@@ -671,6 +715,11 @@ class Errors:
     @error_code_decorator
     def incident_type_integer_field(field):
         return f'The field {field} needs to be a positive integer. Please add it.\n'
+
+    @staticmethod
+    @error_code_decorator
+    def incident_type_invalid_playbook_id_field():
+        return 'The "playbookId" field is not valid - please enter a non-UUID playbook ID.'
 
     @staticmethod
     @error_code_decorator
@@ -760,7 +809,7 @@ class Errors:
     @staticmethod
     @error_code_decorator
     def structure_doesnt_match_scheme(pretty_formatted_string_of_regexes):
-        return f"The file does not match any scheme we have please, refer to the following list" \
+        return f"The file does not match any scheme we have, please refer to the following list" \
                f"for the various file name options we have in our repo {pretty_formatted_string_of_regexes}"
 
     @staticmethod
@@ -795,6 +844,91 @@ class Errors:
         return 'You should update the following files to the package format, for further details please visit ' \
                'https://github.com/demisto/content/tree/master/docs/package_directory_structure. ' \
                'The files are:\n{}'.format('\n'.join(list(invalid_files)))
+
+    @staticmethod
+    @error_code_decorator
+    def pykwalify_missing_parameter(key_from_error, current_string, path):
+        return f'Missing {key_from_error} in \n{current_string}\nPath: {path}'
+
+    @staticmethod
+    @error_code_decorator
+    def pykwalify_field_undefined(key_from_error):
+        return f'The field {key_from_error} was not defined in the scheme'
+
+    @staticmethod
+    @error_code_decorator
+    def pykwalify_missing_in_root(key_from_error):
+        return f'Missing {key_from_error} in root'
+
+    @staticmethod
+    @error_code_decorator
+    def pykwalify_general_error(error):
+        return f'in {error}'
+
+    @staticmethod
+    @error_code_decorator
+    def invalid_to_version_in_new_classifiers():
+        return 'toVersion field in new classifiers needs to be higher than 6.0.0'
+
+    @staticmethod
+    @error_code_decorator
+    def invalid_to_version_in_old_classifiers():
+        return 'toVersion field in old classifiers needs to be lower than 6.0.0'
+
+    @staticmethod
+    @error_code_decorator
+    def invalid_from_version_in_new_classifiers():
+        return 'fromVersion field in new classifiers needs to be higher or equal to 6.0.0'
+
+    @staticmethod
+    @error_code_decorator
+    def invalid_from_version_in_old_classifiers():
+        return 'fromVersion field in old classifiers needs to be lower than 6.0.0'
+
+    @staticmethod
+    @error_code_decorator
+    def missing_from_version_in_new_classifiers():
+        return 'Must have fromVersion field in new classifiers'
+
+    @staticmethod
+    @error_code_decorator
+    def missing_to_version_in_old_classifiers():
+        return 'Must have toVersion field in old classifiers'
+
+    @staticmethod
+    @error_code_decorator
+    def from_version_higher_to_version():
+        return 'fromVersion field can not be higher than toVersion field'
+
+    @staticmethod
+    @error_code_decorator
+    def invalid_type_in_new_classifiers():
+        return 'Classifiers type must be classification'
+
+    @staticmethod
+    @error_code_decorator
+    def invalid_from_version_in_mapper():
+        return 'fromVersion field in mapper needs to be higher or equal to 6.0.0'
+
+    @staticmethod
+    @error_code_decorator
+    def invalid_to_version_in_mapper():
+        return 'toVersion field in mapper needs to be higher than 6.0.0'
+
+    @staticmethod
+    @error_code_decorator
+    def invalid_mapper_file_name():
+        return 'Invalid file name for mapper. Need to change to classifier-mapper-NAME.json'
+
+    @staticmethod
+    @error_code_decorator
+    def missing_from_version_in_mapper():
+        return 'Must have fromVersion field in mapper'
+
+    @staticmethod
+    @error_code_decorator
+    def invalid_type_in_mapper():
+        return 'Mappers type must be mapping-incoming or mapping-outgoing'
 
     @staticmethod
     def wrong_filename(file_type):
