@@ -17,7 +17,9 @@ jobs:
             command: |
               echo "Parameters: FAKE_MASTER: $FAKE_MASTER"
               echo "Parameters: CONTENT_BRANCH_NAME: $CONTENT_BRANCH_NAME"
-              yum install npm
+              echo 'export PATH="/home/circleci/.local/bin:${PWD}/node_modules/.bin:${PATH}"' >> $BASH_ENV # disable-secrets-detection
+              source $BASH_ENV
+              npm install @mdx-js/mdx fs-extra commander
         - run:
             name: Tox build
             command: |
