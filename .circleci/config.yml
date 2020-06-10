@@ -19,7 +19,6 @@ jobs:
               echo "Parameters: CONTENT_BRANCH_NAME: $CONTENT_BRANCH_NAME"
               echo 'export PATH="/home/circleci/.local/bin:${PWD}/node_modules/.bin:${PATH}"' >> $BASH_ENV # disable-secrets-detection
               source $BASH_ENV
-              apt-get install npm
               npm install @mdx-js/mdx fs-extra commander
         - run:
             name: Tox build
