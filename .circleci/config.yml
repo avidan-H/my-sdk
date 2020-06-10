@@ -17,8 +17,7 @@ jobs:
             command: |
               echo "Parameters: FAKE_MASTER: $FAKE_MASTER"
               echo "Parameters: CONTENT_BRANCH_NAME: $CONTENT_BRANCH_NAME"
-#              apt install nodejs
-              sudo apt-get install nodejs
+              yum install npm
         - run:
             name: Tox build
             command: |
