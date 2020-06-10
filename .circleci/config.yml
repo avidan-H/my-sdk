@@ -13,11 +13,11 @@ jobs:
       steps:
         - checkout
         - run:
-            name: Print environment variables
+            name: Prepare environment
             command: |
               echo "Parameters: FAKE_MASTER: $FAKE_MASTER"
               echo "Parameters: CONTENT_BRANCH_NAME: $CONTENT_BRANCH_NAME"
-
+              brew install node
         - run:
             name: Tox build
             command: |
