@@ -832,7 +832,7 @@ def exit_from_program(result=0, **kwargs):
 
 
 def van_dijk_error():
-    with open('demisto_sdk/tests/test_files/win_error', 'r') as reader:
+    with open(os.path.join(os.path.dirname(__file__), 'tests', 'test_files', 'win_error'), 'r') as reader:
         return reader.read()
 
 # todo: add download from demisto command
